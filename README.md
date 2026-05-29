@@ -1,0 +1,7 @@
+Traffic Demand Prediction — What We Built
+We're solving a regression problem where the goal is to predict traffic demand (0 to 1) at specific locations and times, scored on R².
+Data — 77,299 rows with location (geohash), time (15-min slots), road info, weather, and temperature. Three columns had nulls — we filled them using pure logic formulas derived from the data itself: Weather was inferred from Temperature bands (non-overlapping ranges like Snowy < 7°, Rainy 7–14°), Temperature was filled using weather-specific medians, and RoadType was derived from NumberOfLanes + LargeVehicles rules. No ML used for imputation.
+Key insight — Geohash × TimeSlot together explain 97.54% of demand variance. So the most important feature is a Bayesian-smoothed mean demand per location per 15-minute window, computed from training data with a fallback chain for unseen locations.
+Time encoding — Traffic is cyclical. Instead of feeding raw hour numbers (where midnight and 11:45pm look far apart), we use sin/cos cyclical encoding so the model understands the wave shape of demand across the day.
+Models — LightGBM, XGBoost, and CatBoost trained with 5-fold cross-validation. Final predictions are a weighted ensemble (40% LGB, 35% XGB, 25% CAT). Target is log-transformed before training to handle skew, then converted back.
+Output — A sample_submission.csv with Index and predicted demand for every test row. The full pipeline (models + lookup maps) is saved to Drive so any new test CSV can be predicted in seconds without retraining.
